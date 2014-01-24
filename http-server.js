@@ -83,6 +83,4 @@ let main = function() {
     server.run();
 };
 
-log(Gio.content_type_guess('main.txt', null));
-
 main();
