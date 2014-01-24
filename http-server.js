@@ -40,6 +40,23 @@ let findFileFromPath = function(path) {
     return filesHash[p];
 };
 
+/**/
+
+let directories = [];
+
+let addDirectory = function(localPath) {
+    directories.push(localPath);
+};
+
+let findFileFromPath = function(path) {
+    for (let i in directories) {
+        let lpath = directories[i] + path;
+        if (GLib.file_test(lpath, GLib.FileTest.IS_REGULAR))
+            return lpath;
+    }
+    return null;
+};
+
 /* updates.xml generation */
 
 let checksumString = function(str) {
@@ -80,14 +97,18 @@ let compress = function(str) {
 /* Handling updates payload */
 
 let payloadHandler = function(server, msg, path, query, client) {
-    let f = findFileFromPath(path);
-    if (!f) {
+    let localPath = findFileFromPath(path);
+    if (!localPath) {
+        log(path + ' missing?? ');
         msg.status_code = 404;
         return;
     }
 
-    let file = Gio.File.new_for_path(f.localPath);
+    let mime = Gio.content_type_guess(localPath, null)[0];
+    let file = Gio.File.new_for_path(localPath);
     let io = file.read(null);
+
+    log('sending ' + localPath + ' mime=' + mime);
 
     let reader = function(msg) {
         let buffer = io.read_bytes(1024, null);
@@ -100,60 +121,39 @@ let payloadHandler = function(server, msg, path, query, client) {
 
     if (io) {
         msg.status_code = 200;
-        msg.response_headers.set_content_type('text/html', {});
-        msg.response_headers.set_encoding(Soup.Encoding.CHUNKED);
+        msg.response_body.set_accumulate(true);
+        msg.response_headers.set_content_type(mime, {});
+        msg.response_headers.set_encoding(Soup.Encoding.EOF);
 
         msg.connect('wrote-headers', Lang.bind(this, reader));
         msg.connect('wrote-chunk', Lang.bind(this, reader));
     } else {
+        log(path + ' -> ' + localPath + ' missing???');
         msg.status_code = 404;
         msg.response_body.complete();
-    }
-};
-
-let installFilesHandler = function(server) {
-    for (let i in filesHash) {
-        let f = filesHash[i];
-        registerHandler(f.httpPath, payloadHandler);
     }
 };
 
 /* Libsoup handler */
 
 let mainHandler = function(server, msg, path, query, client) {
-    log("Looking for handler " + path);
-    let handler = findHandler(path);
-
-    if (handler)
-        handler(server, msg, path, query, client);
+    payloadHandler(server, msg, path, query, client);
 };
 
 /**/
 
 let main = function() {
+    /* Add directories to look into */
+    for (let i in ARGV)
+        addDirectory(ARGV[i]);
 
-    /* Add files */
-    for (let i in ARGV) {
-        let dir = Gio.File.new_for_path(ARGV[i]);
-        let enumerator = dir.enumerate_children("",
-                                                Gio.FileQueryInfoFlags.NONE,
-                                                null);
-        let info = null;
-        while ((info = enumerator.next_file(null))) {
-            let name = info.get_name();
-            let path = dir.get_path() + '/' + name;
-            log(path);
-            addFile('/' + name, path);
-        }
-
-    }
 
     /**/
     let server = new Soup.Server({ port: 1080 });
-    server.add_handler('/', mainHandler);
-    installFilesHandler(server);
-
+    server.add_handler(null, mainHandler);
     server.run();
-}
+};
+
+log(Gio.content_type_guess('main.txt', null));
 
 main();
