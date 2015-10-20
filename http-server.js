@@ -78,9 +78,11 @@ let main = function() {
     for (let i in ARGV)
         addDirectory(ARGV[i]);
 
-
     /**/
-    let server = new Soup.Server({ port: 1080 });
+    let server = new Soup.Server({ ssl_cert_file: 'test-cert.pem',
+                                   ssl_key_file: 'test-key.pem',
+                                   port: 1080 });
+
     server.add_handler(null, mainHandler);
     server.run();
 };
