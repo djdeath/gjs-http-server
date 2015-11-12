@@ -35,13 +35,13 @@ let payloadHandler = function(server, msg, path, query, client) {
 
     let mime = Gio.content_type_guess(localPath, null)[0];
     let file = Gio.File.new_for_path(localPath);
+    let fileInfo = file.query_info('*', Gio.FileQueryInfoFlags.NONE, null);
     let io = file.read(null);
 
     log('sending ' + localPath + ' mime=' + mime);
 
     let reader = function(msg) {
-        let buffer = io.read_bytes(1024, null);
-
+        let buffer = io.read_bytes(fileInfo.get_size(), null);
         if (buffer.get_size() > 0)
             msg.response_body.append(buffer.get_data(), buffer.get_size());
         else
@@ -52,6 +52,7 @@ let payloadHandler = function(server, msg, path, query, client) {
         msg.status_code = 200;
         msg.response_body.set_accumulate(true);
         msg.response_headers.set_content_type(mime, {});
+        msg.response_headers.set_content_length(fileInfo.get_size());
         msg.response_headers.set_encoding(Soup.Encoding.EOF);
 
         msg.connect('wrote-headers', Lang.bind(this, reader));
