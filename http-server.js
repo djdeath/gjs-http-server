@@ -44,8 +44,10 @@ let payloadHandler = function(server, msg, path, query, client) {
         let buffer = io.read_bytes(fileInfo.get_size(), null);
         if (buffer.get_size() > 0)
             msg.response_body.append(buffer.get_data(), buffer.get_size());
-        else
+        else {
+            io.close(null);
             msg.response_body.complete();
+        }
     };
 
     if (io) {
