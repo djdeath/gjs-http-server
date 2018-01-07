@@ -23,6 +23,15 @@ let findFileFromPath = function(path) {
     return null;
 };
 
+let fileMime = function(path) {
+  let file = Gio.File.new_for_path(path);
+  let io = file.read(null);
+  let data = io.read_bytes(100, null);
+  let mime = Gio.content_type_guess(path, data.get_data())[0];
+  io.close(null);
+  return mime;
+};
+
 /* Handling updates payload */
 
 let payloadHandler = function(server, msg, path, query, client) {
@@ -33,7 +42,7 @@ let payloadHandler = function(server, msg, path, query, client) {
         return;
     }
 
-    let mime = Gio.content_type_guess(localPath, null)[0];
+    let mime = fileMime(localPath);
     let file = Gio.File.new_for_path(localPath);
     let fileInfo = file.query_info('*', Gio.FileQueryInfoFlags.NONE, null);
     let io = file.read(null);
