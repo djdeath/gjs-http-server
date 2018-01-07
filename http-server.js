@@ -1,6 +1,7 @@
 // This is a simple example of a HTTP server in Gjs using libsoup
 
 const Lang = imports.lang;
+const Mainloop = imports.mainloop;
 
 const GLib = imports.gi.GLib;
 const Gio = imports.gi.Gio;
@@ -91,12 +92,15 @@ let main = function() {
         addDirectory(ARGV[i]);
 
     /**/
-    let server = new Soup.Server({ ssl_cert_file: 'test-cert.pem',
-                                   ssl_key_file: 'test-key.pem',
-                                   port: 1080 });
+    let server =
+        new Soup.Server({ tls_certificate: Gio.TlsCertificate.new_from_files('test-cert.pem',
+                                                                             'test-key.pem') });
 
     server.add_handler(null, mainHandler);
-    server.run();
+    server.listen_all(1080, GLib.getenv('HTTPS') ? Soup.ServerListenOptions.HTTPS : 0);
+    log(server.is_https());
+
+    Mainloop.run('gjs-http-server');
 };
 
 main();
