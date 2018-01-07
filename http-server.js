@@ -48,7 +48,7 @@ let payloadHandler = function(server, msg, path, query, client) {
     let fileInfo = file.query_info('*', Gio.FileQueryInfoFlags.NONE, null);
     let io = file.read(null);
 
-    log('sending ' + localPath + ' mime=' + mime);
+    log('sending ' + localPath + ' mime=' + mime + ' file=' + path);
 
     let reader = function(msg) {
         let buffer = io.read_bytes(fileInfo.get_size(), null);
