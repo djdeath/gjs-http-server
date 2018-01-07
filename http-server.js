@@ -78,7 +78,7 @@ let payloadHandler = function(server, msg, path, query, client) {
 
 /* Libsoup handler */
 
-let mainHandler = function(server, msg, path, query, client) {
+let mainHandler = function(server, msg, path, query, client){
     if (path == '/')
         path = '/index.html';
     payloadHandler(server, msg, path, query, client);
